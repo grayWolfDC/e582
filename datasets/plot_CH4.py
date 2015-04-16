@@ -6,7 +6,7 @@ import h5py
 import glob
 from matplotlib import pyplot as plt
 import site
-site.addsitedir('./utilities')
+site.addsitedir('../utilities')
 from reproject import reproj_numba
 import planck
 import os,errno
@@ -70,16 +70,24 @@ def find_corners(lons, lats):
 in_file = 'svc_AIRS.2015.04.05.225.L2.RetStd.v6.0.11.0.G15096141835.h5'
 
 with h5py.File(in_file) as airs_h5:
+    missing_val=airs_h5['/L2_Standard_atmospheric&surface_product']['Data Fields']['CH4_total_column'].attrs['_FillValue']
     ch4_col = airs_h5['/L2_Standard_atmospheric&surface_product']['Data Fields']['CH4_total_column'][...]
     the_lon = airs_h5['/L2_Standard_atmospheric&surface_product']['Geolocation Fields']['Longitude'][...]
     the_lat = airs_h5['/L2_Standard_atmospheric&surface_product']['Geolocation Fields']['Latitude'][...]
 
+bad_values=ch4_col == missing_val    
 #plt.scatter(the_lon,the_lat)
 #plt.hist(ch4_col)
 
 ch4_col_converted = ch4_col*(16*1.66054e-27/1.e-4) #convert from molecules ch4/cm^2 to kg/m^2
-plt.hist(ch4_col_converted)
-plt.show()
+ch4_col_converted[bad_values]=missing_val
+
+plt.close('all')
+fig,ax=plt.subplots(1,1,figsize=(10,10))
+ax.hist(ch4_col_converted.ravel())
+ax.set_title('pre-gridded')
+
+
 
 #ch4_col_test = ch4_col*(2.656864e22)
 #plt.hist(ch4_col_test)
@@ -104,20 +112,26 @@ lcc_values['resolution']='c'
 lcc_values['projection']='lcc'
 
 
-missing_val=-999.  
 latlim=[lcc_values['llcrnrlat'],lcc_values['urcrnrlat']]
 lonlim=[lcc_values['llcrnrlon'],lcc_values['urcrnrlon']]
-res=0.3
+res=0.5
 ch4_col_grid, longrid, latgrid, bin_count = reproj_numba(ch4_col_converted,missing_val, the_lon, the_lat, lonlim, latlim, res)
+ch4_col_grid=ma.array(ch4_col_grid,mask=np.isnan(ch4_col_grid))
+
+fig,ax=plt.subplots(1,1,figsize=(10,10))
+hit=np.logical_not(np.isnan(ch4_col_grid))
+ax.hist(ch4_col_grid[hit])
+ax.set_title('gridded')
+
 #phase_grid,longrid, latgrid, bin_count = reproj_numba(phase,missing_val, the_lon, the_lat, lonlim, latlim, res)
 
     
 cmap=cm.YlGn  #see http://wiki.scipy.org/Cookbook/Matplotlib/Show_colormaps
-#cmap.set_over('r')
-cmap.set_under('0.8') 
-#cmap.set_bad('0.75') #75% grey
-vmin= 0.008
-vmax= 0.012
+cmap.set_over('r')
+cmap.set_under('b') 
+cmap.set_bad('0.75') #75% grey
+vmin= 0.009
+vmax= 0.011
 
 the_norm=Normalize(vmin=vmin,vmax=vmax,clip=False)
 fig,ax=plt.subplots(1,1,figsize=(10,10))
@@ -134,6 +148,7 @@ proj.ax.set_title('Methane total column')
 proj.ax.figure.canvas.draw()
 plt.show()   
  #fch4ig.savefig('{}/ch4totcol.png'.format(plot_dir))
+
 
 
 
