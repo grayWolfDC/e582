@@ -73,10 +73,11 @@ if __name__ == "__main__":
     the_keys=list(test.keys())
     eff_rad=test['mod06']['Data Fields']['Cloud_Effective_Radius'][...]
     eff_rad=eff_rad.astype(np.float32)
-    ## hit=eff_rad== -9999.
-    ## eff_rad[hit]=np.nan
-    ## eff_rad=ma.array(eff_rad,mask=np.isnan(eff_rad))
+    hit=eff_rad== -9999.
+    eff_rad[hit]=np.nan
+    print(np.sum(hit)/eff_rad.size)
+    eff_rad=ma.array(eff_rad,mask=np.isnan(eff_rad))
     plt.close('all')
-    plt.hist(eff_rad.flat)
+    plt.hist(eff_rad.compressed())
     plt.show()
     
