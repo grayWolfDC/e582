@@ -60,15 +60,23 @@ if __name__ == "__main__":
     with io.open(args.initfile,'r',encoding='utf8') as f:
         name_dict=json.loads(f.read(),object_pairs_hook=od)
 
-    ## with h5py.File(geom_file) as geom_h5,h5py.File(l1b_file) as l1b_h5:
-    ##     #channel31 is emissive channel 10
-    ##     #pdb.set_trace()
-    ##     chan29=(chan29 - offset)*scale
+    geom_file,mod06_file=name_dict['geom_file'],name_dict['m06_file'],
+    with h5py.File(geom_file) as geom_h5:
+        the_lon=geom_h5['MODIS_Swath_Type_GEO']['Geolocation Fields']['Longitude'][...]
+        the_lat=geom_h5['MODIS_Swath_Type_GEO']['Geolocation Fields']['Latitude'][...]
 
-    ##     the_lon=geom_h5['MODIS_Swath_Type_GEO']['Geolocation Fields']['Longitude'][...]
-    ##     the_lat=geom_h5['MODIS_Swath_Type_GEO']['Geolocation Fields']['Latitude'][...]
+    with h5py.File(mod06_file) as m06_h5:
+        phase=m06_h5['mod06']['Data Fields']['Cloud_Phase_Infrared_1km'][...]
+        phase=phase.astype(np.int32)
 
-    ## with h5py.File(mod06_file) as m06_h5:
-    ##     phase=m06_h5['mod06']['Data Fields']['Cloud_Phase_Infrared_1km'][...]
-    ##     phase=phase.astype(np.int32)
-
+    test=h5py.File(mod06_file)
+    the_keys=list(test.keys())
+    eff_rad=test['mod06']['Data Fields']['Cloud_Effective_Radius'][...]
+    eff_rad=eff_rad.astype(np.float32)
+    ## hit=eff_rad== -9999.
+    ## eff_rad[hit]=np.nan
+    ## eff_rad=ma.array(eff_rad,mask=np.isnan(eff_rad))
+    plt.close('all')
+    plt.hist(eff_rad.flat)
+    plt.show()
+    
